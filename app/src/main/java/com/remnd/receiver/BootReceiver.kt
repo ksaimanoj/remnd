@@ -3,12 +3,9 @@ package com.remnd.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.app.AlarmManager
-import android.app.PendingIntent
-import com.remnd.data.AlarmScheduler
-import com.remnd.data.FrequencyType
-import com.remnd.data.ReminderDatabase
 import androidx.room.Room
+import com.remnd.data.AlarmScheduler
+import com.remnd.data.ReminderDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,33 +29,8 @@ class BootReceiver : BroadcastReceiver() {
                 .build()
 
             val reminders = db.reminderDao().getRemindersWithAlarms()
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-            reminders.forEach { reminder ->
-                val triggerMillis = reminder.dueTimeMillis ?: return@forEach
-
-                val fireMillis = if (reminder.frequencyType == FrequencyType.DAILY) {
-                    AlarmScheduler.nextOccurrenceMillis(triggerMillis)
-                } else {
-                    if (triggerMillis <= System.currentTimeMillis()) return@forEach
-                    triggerMillis
-                }
-
-                val alarmIntent = Intent(context, AlarmReceiver::class.java).apply {
-                    putExtra(AlarmReceiver.EXTRA_REMINDER_ID, reminder.id)
-                    putExtra(AlarmReceiver.EXTRA_TITLE, reminder.title)
-                    putExtra(AlarmReceiver.EXTRA_DESCRIPTION, reminder.description)
-                    putExtra(AlarmReceiver.EXTRA_FREQUENCY_TYPE, reminder.frequencyType)
-                    putExtra(AlarmReceiver.EXTRA_DUE_TIME_MILLIS, triggerMillis)
-                }
-                val pendingIntent = PendingIntent.getBroadcast(
-                    context, reminder.id.toInt(), alarmIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, fireMillis, pendingIntent
-                )
-            }
+            val alarmScheduler = AlarmScheduler(context.applicationContext)
+            reminders.forEach { alarmScheduler.schedule(it) }
 
             db.close()
         }
