@@ -134,6 +134,10 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+### Google Drive credentials (never commit these) ###
+scripts/credentials.json
+scripts/token.json
+
 ### IDE ###
 *.swp
 *.swo
