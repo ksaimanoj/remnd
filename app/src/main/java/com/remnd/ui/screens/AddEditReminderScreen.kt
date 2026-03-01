@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.remnd.data.FrequencyType
 import com.remnd.data.Priority
 import com.remnd.data.Reminder
 import com.remnd.viewmodel.ReminderViewModel
@@ -40,6 +41,7 @@ fun AddEditReminderScreen(
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableIntStateOf(Priority.MEDIUM) }
     var dueTimeMillis by remember { mutableStateOf<Long?>(null) }
+    var frequencyType by remember { mutableIntStateOf(FrequencyType.NONE) }
 
     // Populate fields once existing reminder is loaded
     LaunchedEffect(existingReminder) {
@@ -48,14 +50,26 @@ fun AddEditReminderScreen(
             description = r.description
             priority = r.priority
             dueTimeMillis = r.dueTimeMillis
+            frequencyType = r.frequencyType
         }
     }
 
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var pendingDateMillis by remember { mutableStateOf<Long?>(null) }
     var titleError by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = dueTimeMillis ?: System.currentTimeMillis()
+    )
+
+    // Derive initial hour/minute from existing due time when editing
+    val existingCal = remember(dueTimeMillis) {
+        dueTimeMillis?.let { Calendar.getInstance().apply { timeInMillis = it } }
+    }
+    val timePickerState = rememberTimePickerState(
+        initialHour = existingCal?.get(Calendar.HOUR_OF_DAY) ?: 9,
+        initialMinute = existingCal?.get(Calendar.MINUTE) ?: 0
     )
 
     Scaffold(
@@ -145,9 +159,30 @@ fun AddEditReminderScreen(
                     )
                 }
                 if (dueTimeMillis != null) {
-                    IconButton(onClick = { dueTimeMillis = null }) {
+                    IconButton(onClick = {
+                        dueTimeMillis = null
+                        frequencyType = FrequencyType.NONE
+                    }) {
                         Icon(Icons.Default.Clear, "Clear date", tint = MaterialTheme.colorScheme.error)
                     }
+                }
+            }
+
+            // Frequency chips — only visible when a due time is set
+            if (dueTimeMillis != null) {
+                Text("Repeat", style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(FrequencyType.NONE to "Once", FrequencyType.DAILY to "Daily")
+                        .forEach { (value, label) ->
+                            FilterChip(
+                                selected = frequencyType == value,
+                                onClick = { frequencyType = value },
+                                label = { Text(label) },
+                                leadingIcon = if (frequencyType == value) {
+                                    { Icon(Icons.Default.Check, null, Modifier.size(16.dp)) }
+                                } else null
+                            )
+                        }
                 }
             }
 
@@ -160,13 +195,15 @@ fun AddEditReminderScreen(
                         titleError = true
                         return@Button
                     }
+                    val effectiveFrequencyType = if (dueTimeMillis == null) FrequencyType.NONE else frequencyType
                     if (isEditing && existingReminder != null) {
                         viewModel.updateReminder(
                             existingReminder!!.copy(
                                 title = title.trim(),
                                 description = description.trim(),
                                 priority = priority,
-                                dueTimeMillis = dueTimeMillis
+                                dueTimeMillis = dueTimeMillis,
+                                frequencyType = effectiveFrequencyType
                             )
                         )
                     } else {
@@ -174,7 +211,8 @@ fun AddEditReminderScreen(
                             title = title,
                             description = description,
                             dueTimeMillis = dueTimeMillis,
-                            priority = priority
+                            priority = priority,
+                            frequencyType = effectiveFrequencyType
                         )
                     }
                     onNavigateBack()
@@ -195,13 +233,10 @@ fun AddEditReminderScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        // Default to noon on selected day
-                        val cal = Calendar.getInstance().apply { timeInMillis = millis }
-                        cal.set(Calendar.HOUR_OF_DAY, 9)
-                        cal.set(Calendar.MINUTE, 0)
-                        dueTimeMillis = cal.timeInMillis
-                    }
-                    showDatePicker = false
+                        pendingDateMillis = millis
+                        showDatePicker = false
+                        showTimePicker = true
+                    } ?: run { showDatePicker = false }
                 }) { Text("OK") }
             },
             dismissButton = {
@@ -210,5 +245,38 @@ fun AddEditReminderScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    // Time picker dialog
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Select time") },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDateMillis?.let { dateMillis ->
+                        val cal = Calendar.getInstance().apply {
+                            timeInMillis = dateMillis
+                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                            set(Calendar.MINUTE, timePickerState.minute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        dueTimeMillis = cal.timeInMillis
+                    }
+                    showTimePicker = false
+                    pendingDateMillis = null
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showTimePicker = false
+                    pendingDateMillis = null
+                }) { Text("Cancel") }
+            }
+        )
     }
 }

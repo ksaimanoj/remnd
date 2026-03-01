@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.remnd.data.FrequencyType
 import com.remnd.data.Priority
 import com.remnd.data.Reminder
 import java.text.SimpleDateFormat
@@ -74,23 +75,31 @@ fun ReminderItem(
                 }
                 reminder.dueTimeMillis?.let { millis ->
                     val fmt = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
+                    val isOverdue = millis < System.currentTimeMillis() && !reminder.isCompleted
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.Alarm,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
-                            tint = if (millis < System.currentTimeMillis() && !reminder.isCompleted)
-                                MaterialTheme.colorScheme.error
+                            tint = if (isOverdue) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = fmt.format(Date(millis)),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (millis < System.currentTimeMillis() && !reminder.isCompleted)
-                                MaterialTheme.colorScheme.error
+                            color = if (isOverdue) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.primary
                         )
+                        if (reminder.frequencyType == FrequencyType.DAILY) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                Icons.Default.Repeat,
+                                contentDescription = "Daily",
+                                modifier = Modifier.size(12.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }

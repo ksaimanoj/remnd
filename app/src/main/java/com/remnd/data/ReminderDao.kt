@@ -53,6 +53,9 @@ interface ReminderDao {
     @Query("UPDATE reminders SET isCompleted = :completed WHERE id = :id")
     suspend fun setCompleted(id: Long, completed: Boolean)
 
+    @Query("SELECT * FROM reminders WHERE isCompleted = 1")
+    suspend fun getCompletedRemindersSnapshot(): List<Reminder>
+
     @Query("DELETE FROM reminders WHERE isCompleted = 1")
     suspend fun deleteAllCompleted()
 }

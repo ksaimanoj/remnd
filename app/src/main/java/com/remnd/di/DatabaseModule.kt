@@ -22,7 +22,9 @@ object DatabaseModule {
             context,
             ReminderDatabase::class.java,
             ReminderDatabase.DATABASE_NAME
-        ).build()
+        )
+            .addMigrations(ReminderDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     fun provideReminderDao(database: ReminderDatabase): ReminderDao =

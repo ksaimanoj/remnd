@@ -27,11 +27,19 @@ data class Reminder(
     val priority: Int = Priority.MEDIUM,
 
     /** Unix epoch millis when this reminder was created */
-    val createdAtMillis: Long = System.currentTimeMillis()
+    val createdAtMillis: Long = System.currentTimeMillis(),
+
+    /** Frequency type: 0 = Once (no repeat), 1 = Daily */
+    val frequencyType: Int = FrequencyType.NONE
 )
 
 object Priority {
     const val LOW = 0
     const val MEDIUM = 1
     const val HIGH = 2
+}
+
+object FrequencyType {
+    const val NONE = 0
+    const val DAILY = 1
 }

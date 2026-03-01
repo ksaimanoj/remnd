@@ -2,6 +2,7 @@ package com.remnd.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.remnd.data.FrequencyType
 import com.remnd.data.Priority
 import com.remnd.data.Reminder
 import com.remnd.data.ReminderRepository
@@ -69,7 +70,8 @@ class ReminderViewModel @Inject constructor(
         title: String,
         description: String = "",
         dueTimeMillis: Long? = null,
-        priority: Int = Priority.MEDIUM
+        priority: Int = Priority.MEDIUM,
+        frequencyType: Int = FrequencyType.NONE
     ) {
         if (title.isBlank()) return
         viewModelScope.launch {
@@ -78,7 +80,8 @@ class ReminderViewModel @Inject constructor(
                     title = title.trim(),
                     description = description.trim(),
                     dueTimeMillis = dueTimeMillis,
-                    priority = priority
+                    priority = priority,
+                    frequencyType = frequencyType
                 )
             )
         }
