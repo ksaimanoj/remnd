@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Pre-Android 12 (API 23–30) backup rules.
+    Backs up the Room database (remnd_db) to Google Drive so data
+    survives uninstalls/reinstalls as long as the same Google account
+    is used on the device.
+-->
+<full-backup-content>
+    <include domain="database" path="remnd_db" />
+    <include domain="database" path="remnd_db-wal" />
+    <include domain="database" path="remnd_db-shm" />
+</full-backup-content>
