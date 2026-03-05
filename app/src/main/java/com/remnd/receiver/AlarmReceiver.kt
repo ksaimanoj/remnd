@@ -70,11 +70,38 @@ class AlarmReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .addAction(0, "Complete \u2713", completePi)
             .addAction(0, "Dismiss", dismissPi)
+            .setGroup(RemndApplication.NOTIFICATION_GROUP_KEY)
             .build()
 
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, notification)
+
+        // Count active reminder notifications (excluding the summary) to update the group summary
+        val activeCount = notificationManager.activeNotifications.count {
+            it.groupKey?.endsWith(RemndApplication.NOTIFICATION_GROUP_KEY) == true &&
+                it.id != RemndApplication.SUMMARY_NOTIFICATION_ID
+        }
+        val summaryTapIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val summaryTapPi = PendingIntent.getActivity(
+            context, RemndApplication.SUMMARY_NOTIFICATION_ID, summaryTapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val summaryNotification = NotificationCompat.Builder(
+            context,
+            RemndApplication.NOTIFICATION_CHANNEL_ID
+        )
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("$activeCount reminders")
+            .setContentIntent(summaryTapPi)
+            .setAutoCancel(true)
+            .setGroup(RemndApplication.NOTIFICATION_GROUP_KEY)
+            .setGroupSummary(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+        notificationManager.notify(RemndApplication.SUMMARY_NOTIFICATION_ID, summaryNotification)
 
         // Reschedule the next occurrence for DAILY and HOURLY reminders
         val isRecurring = (frequencyType == FrequencyType.DAILY || frequencyType == FrequencyType.HOURLY) && dueTimeMillis != -1L
