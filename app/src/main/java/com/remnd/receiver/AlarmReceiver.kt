@@ -76,9 +76,13 @@ class AlarmReceiver : BroadcastReceiver() {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, notification)
 
-        // Reschedule the next occurrence for DAILY reminders
-        if (frequencyType == FrequencyType.DAILY && dueTimeMillis != -1L) {
-            val nextMillis = AlarmScheduler.nextOccurrenceMillis(dueTimeMillis)
+        // Reschedule the next occurrence for DAILY and HOURLY reminders
+        val isRecurring = (frequencyType == FrequencyType.DAILY || frequencyType == FrequencyType.HOURLY) && dueTimeMillis != -1L
+        if (isRecurring) {
+            val nextMillis = if (frequencyType == FrequencyType.HOURLY)
+                AlarmScheduler.nextHourlyOccurrenceMillis(dueTimeMillis)
+            else
+                AlarmScheduler.nextOccurrenceMillis(dueTimeMillis)
             val now = System.currentTimeMillis()
 
             // Reschedule main alarm
