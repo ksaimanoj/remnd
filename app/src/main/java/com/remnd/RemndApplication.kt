@@ -12,6 +12,8 @@ class RemndApplication : Application() {
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "remnd_reminders"
         const val NOTIFICATION_CHANNEL_NAME = "Reminders"
+        const val NOTIFICATION_GROUP_KEY = "com.remnd.REMINDERS_GROUP"
+        const val SUMMARY_NOTIFICATION_ID = 0
     }
 
     override fun onCreate() {
