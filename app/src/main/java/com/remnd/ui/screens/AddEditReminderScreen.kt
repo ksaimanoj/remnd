@@ -58,6 +58,7 @@ fun AddEditReminderScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     var pendingDateMillis by remember { mutableStateOf<Long?>(null) }
     var titleError by remember { mutableStateOf(false) }
+    var dueDateError by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = dueTimeMillis ?: System.currentTimeMillis()
@@ -71,6 +72,10 @@ fun AddEditReminderScreen(
         initialHour = existingCal?.get(Calendar.HOUR_OF_DAY) ?: 9,
         initialMinute = existingCal?.get(Calendar.MINUTE) ?: 0
     )
+
+    // Whether the current frequency requires date+time, time only, or nothing
+    val needsDateTime = frequencyType == FrequencyType.NONE
+    val needsTimeOnly = frequencyType == FrequencyType.DAILY
 
     Scaffold(
         topBar = {
@@ -140,49 +145,84 @@ fun AddEditReminderScreen(
                     }
             }
 
-            // Due date/time
-            Text("Due date (optional)", style = MaterialTheme.typography.labelLarge)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.CalendarToday, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        dueTimeMillis?.let {
-                            SimpleDateFormat("MMM d, yyyy  h:mm a", Locale.getDefault()).format(Date(it))
-                        } ?: "Set due date & time"
-                    )
-                }
-                if (dueTimeMillis != null) {
-                    IconButton(onClick = {
-                        dueTimeMillis = null
-                        frequencyType = FrequencyType.NONE
-                    }) {
-                        Icon(Icons.Default.Clear, "Clear date", tint = MaterialTheme.colorScheme.error)
+            // Repeat — always visible
+            Text("Repeat", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(FrequencyType.NONE to "Once", FrequencyType.DAILY to "Daily", FrequencyType.HOURLY to "Hourly")
+                    .forEach { (value, label) ->
+                        FilterChip(
+                            selected = frequencyType == value,
+                            onClick = {
+                                frequencyType = value
+                                // Hourly needs no date/time — clear it
+                                if (value == FrequencyType.HOURLY) {
+                                    dueTimeMillis = null
+                                    dueDateError = false
+                                }
+                            },
+                            label = { Text(label) },
+                            leadingIcon = if (frequencyType == value) {
+                                { Icon(Icons.Default.Check, null, Modifier.size(16.dp)) }
+                            } else null
+                        )
                     }
-                }
             }
 
-            // Frequency chips — only visible when a due time is set
-            if (dueTimeMillis != null) {
-                Text("Repeat", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(FrequencyType.NONE to "Once", FrequencyType.DAILY to "Daily", FrequencyType.HOURLY to "Hourly")
-                        .forEach { (value, label) ->
-                            FilterChip(
-                                selected = frequencyType == value,
-                                onClick = { frequencyType = value },
-                                label = { Text(label) },
-                                leadingIcon = if (frequencyType == value) {
-                                    { Icon(Icons.Default.Check, null, Modifier.size(16.dp)) }
-                                } else null
-                            )
+            // Due date and time — hidden for Hourly
+            if (needsDateTime || needsTimeOnly) {
+                val sectionLabel = if (needsTimeOnly) "Time *" else "Due date and time *"
+                val placeholder = if (needsTimeOnly) "Set time" else "Set due date & time"
+                val dateFormat = if (needsTimeOnly) "h:mm a" else "MMM d, yyyy  h:mm a"
+
+                Text(
+                    sectionLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (dueDateError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            dueDateError = false
+                            if (needsTimeOnly) showTimePicker = true
+                            else showDatePicker = true
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = if (dueDateError) ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ) else ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Icon(
+                            if (needsTimeOnly) Icons.Default.Schedule else Icons.Default.CalendarToday,
+                            null,
+                            Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            dueTimeMillis?.let {
+                                SimpleDateFormat(dateFormat, Locale.getDefault()).format(Date(it))
+                            } ?: placeholder
+                        )
+                    }
+                    if (dueTimeMillis != null) {
+                        IconButton(onClick = {
+                            dueTimeMillis = null
+                            dueDateError = false
+                        }) {
+                            Icon(Icons.Default.Clear, "Clear", tint = MaterialTheme.colorScheme.error)
                         }
+                    }
+                }
+                if (dueDateError) {
+                    Text(
+                        if (needsTimeOnly) "Time is required" else "Due date and time is required",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
                 }
             }
 
@@ -191,11 +231,18 @@ fun AddEditReminderScreen(
             // Save button
             Button(
                 onClick = {
+                    var hasError = false
                     if (title.isBlank()) {
                         titleError = true
-                        return@Button
+                        hasError = true
                     }
-                    val effectiveFrequencyType = if (dueTimeMillis == null) FrequencyType.NONE else frequencyType
+                    if ((needsDateTime || needsTimeOnly) && dueTimeMillis == null) {
+                        dueDateError = true
+                        hasError = true
+                    }
+                    if (hasError) return@Button
+
+                    val effectiveFrequencyType = frequencyType
                     if (isEditing && existingReminder != null) {
                         viewModel.updateReminder(
                             existingReminder!!.copy(
@@ -226,7 +273,7 @@ fun AddEditReminderScreen(
         }
     }
 
-    // Date picker dialog
+    // Date picker dialog (Once only)
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -250,23 +297,31 @@ fun AddEditReminderScreen(
     // Time picker dialog
     if (showTimePicker) {
         AlertDialog(
-            onDismissRequest = { showTimePicker = false },
+            onDismissRequest = {
+                showTimePicker = false
+                pendingDateMillis = null
+            },
             title = { Text("Select time") },
             text = {
                 TimePicker(state = timePickerState)
             },
             confirmButton = {
                 TextButton(onClick = {
-                    pendingDateMillis?.let { dateMillis ->
-                        val cal = Calendar.getInstance().apply {
-                            timeInMillis = dateMillis
-                            set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                            set(Calendar.MINUTE, timePickerState.minute)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-                        dueTimeMillis = cal.timeInMillis
+                    // For Daily, use today's date as the base; for Once, use the picked date
+                    val baseDateMillis = pendingDateMillis ?: Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+                    val cal = Calendar.getInstance().apply {
+                        timeInMillis = baseDateMillis
+                        set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                        set(Calendar.MINUTE, timePickerState.minute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
                     }
+                    dueTimeMillis = cal.timeInMillis
                     showTimePicker = false
                     pendingDateMillis = null
                 }) { Text("OK") }
