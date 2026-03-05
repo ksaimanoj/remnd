@@ -20,11 +20,13 @@ class AlarmScheduler @Inject constructor(
         val storedMillis = reminder.dueTimeMillis ?: return
         val now = System.currentTimeMillis()
 
-        val fireMillis = if (reminder.frequencyType == FrequencyType.DAILY) {
-            nextOccurrenceMillis(storedMillis)
-        } else {
-            if (storedMillis <= now) return
-            storedMillis
+        val fireMillis = when (reminder.frequencyType) {
+            FrequencyType.DAILY -> nextOccurrenceMillis(storedMillis)
+            FrequencyType.HOURLY -> nextHourlyOccurrenceMillis(storedMillis)
+            else -> {
+                if (storedMillis <= now) return
+                storedMillis
+            }
         }
 
         scheduleAlarmAt(reminder, storedMillis, fireMillis, isEarly = false)
@@ -74,6 +76,13 @@ class AlarmScheduler @Inject constructor(
             val cal = Calendar.getInstance().apply { timeInMillis = storedMillis }
             val now = Calendar.getInstance()
             while (!cal.after(now)) cal.add(Calendar.DAY_OF_YEAR, 1)
+            return cal.timeInMillis
+        }
+
+        fun nextHourlyOccurrenceMillis(storedMillis: Long): Long {
+            val cal = Calendar.getInstance().apply { timeInMillis = storedMillis }
+            val now = Calendar.getInstance()
+            while (!cal.after(now)) cal.add(Calendar.HOUR_OF_DAY, 1)
             return cal.timeInMillis
         }
     }

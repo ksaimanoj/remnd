@@ -91,11 +91,11 @@ fun ReminderItem(
                             color = if (isOverdue) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.primary
                         )
-                        if (reminder.frequencyType == FrequencyType.DAILY) {
+                        if (reminder.frequencyType == FrequencyType.DAILY || reminder.frequencyType == FrequencyType.HOURLY) {
                             Spacer(Modifier.width(4.dp))
                             Icon(
                                 Icons.Default.Repeat,
-                                contentDescription = "Daily",
+                                contentDescription = if (reminder.frequencyType == FrequencyType.HOURLY) "Hourly" else "Daily",
                                 modifier = Modifier.size(12.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )

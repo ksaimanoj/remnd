@@ -172,7 +172,7 @@ fun AddEditReminderScreen(
             if (dueTimeMillis != null) {
                 Text("Repeat", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(FrequencyType.NONE to "Once", FrequencyType.DAILY to "Daily")
+                    listOf(FrequencyType.NONE to "Once", FrequencyType.DAILY to "Daily", FrequencyType.HOURLY to "Hourly")
                         .forEach { (value, label) ->
                             FilterChip(
                                 selected = frequencyType == value,
