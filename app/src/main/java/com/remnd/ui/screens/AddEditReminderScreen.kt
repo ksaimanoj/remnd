@@ -43,7 +43,10 @@ private fun upcomingOccurrences(dueTimeMillis: Long, frequencyType: Int, count: 
         val next = if (frequencyType == FrequencyType.HOURLY) nextHourlyOccurrence(ref)
                    else nextDailyOccurrence(ref)
         result.add(next)
-        ref = next
+        val cal = Calendar.getInstance().apply { timeInMillis = next }
+        if (frequencyType == FrequencyType.HOURLY) cal.add(Calendar.HOUR_OF_DAY, 1)
+        else cal.add(Calendar.DAY_OF_YEAR, 1)
+        ref = cal.timeInMillis
     }
     return result
 }
