@@ -8,11 +8,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.remnd.ui.screens.AddEditReminderScreen
 import com.remnd.ui.screens.HomeScreen
+import com.remnd.ui.screens.SettingsScreen
 
 object Routes {
     const val HOME = "home"
     const val ADD_REMINDER = "add_reminder"
     const val EDIT_REMINDER = "edit_reminder/{reminderId}"
+    const val SETTINGS = "settings"
 
     fun editReminder(id: Long) = "edit_reminder/$id"
 }
@@ -25,7 +27,8 @@ fun RemndApp() {
         composable(Routes.HOME) {
             HomeScreen(
                 onAddReminder = { navController.navigate(Routes.ADD_REMINDER) },
-                onEditReminder = { id -> navController.navigate(Routes.editReminder(id)) }
+                onEditReminder = { id -> navController.navigate(Routes.editReminder(id)) },
+                onNavigateToSettings = { navController.navigate(Routes.SETTINGS) }
             )
         }
         composable(Routes.ADD_REMINDER) {
@@ -41,6 +44,11 @@ fun RemndApp() {
             val reminderId = backStackEntry.arguments?.getLong("reminderId")
             AddEditReminderScreen(
                 reminderId = reminderId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

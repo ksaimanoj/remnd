@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import com.remnd.viewmodel.ReminderViewModel
 fun HomeScreen(
     onAddReminder: () -> Unit,
     onEditReminder: (Long) -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: ReminderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -35,6 +37,9 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = { searchActive = !searchActive }) {
                         Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Outlined.Settings, contentDescription = "Settings")
                     }
                     if (uiState.filterMode == FilterMode.COMPLETED) {
                         IconButton(onClick = { showDeleteCompletedDialog = true }) {
